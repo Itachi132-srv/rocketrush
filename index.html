@@ -1,2 +1,140 @@
-Bismillah 
-<imagesrc="mustafa.png">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Math Game</title>
+<style>
+  body {
+    font-family: 'Arial', sans-serif;
+    text-align: center;
+    background: linear-gradient(to bottom, #ffdde1, #ee9ca7);
+    color: #333;
+  }
+  h1 { margin-top: 20px; }
+  #levels { display: flex; flex-wrap: wrap; justify-content: center; margin: 20px; }
+  .level {
+    width: 60px;
+    height: 60px;
+    line-height: 60px;
+    margin: 5px;
+    border-radius: 10px;
+    background-color: #6a5acd;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.3s;
+  }
+  .level:hover { transform: scale(1.1); }
+  .locked { background-color: #ccc; cursor: not-allowed; }
+  #questionContainer {
+    display: none;
+    margin-top: 20px;
+  }
+  #question { font-size: 24px; margin-bottom: 10px; }
+  #answerInput { display: none; } /* Hide default input */
+  #keyboard { display: grid; grid-template-columns: repeat(3, 60px); gap: 10px; justify-content: center; margin-top: 10px; }
+  .key { background-color: #ff7f50; color: white; font-size: 20px; padding: 15px; border-radius: 10px; cursor: pointer; user-select: none; transition: 0.2s; }
+  .key:hover { transform: scale(1.1); }
+  .key.wide { grid-column: span 3; background-color: #32cd32; }
+</style>
+</head>
+<body>
+
+<h1>Math Game</h1>
+<div id="levels"></div>
+
+<div id="questionContainer">
+  <div id="question"></div>
+  <input type="text" id="answerInput" disabled>
+  <div id="keyboard"></div>
+  <button onclick="submitAnswer()" style="margin-top:10px;padding:10px 20px;background:#ff4500;color:white;border:none;border-radius:10px;font-size:16px;cursor:pointer;">Submit</button>
+</div>
+
+<script>
+let totalLevels = 50;
+let unlockedLevel = parseInt(localStorage.getItem('unlockedLevel') || 1);
+let currentLevel = null;
+let correctAnswer = null;
+
+const levelsContainer = document.getElementById('levels');
+const questionContainer = document.getElementById('questionContainer');
+const answerInput = document.getElementById('answerInput');
+const keyboard = document.getElementById('keyboard');
+
+function loadLevels() {
+  levelsContainer.innerHTML = '';
+  for(let i=1;i<=totalLevels;i++){
+    let div = document.createElement('div');
+    div.innerText = i;
+    div.className = 'level';
+    if(i > unlockedLevel) div.classList.add('locked');
+    div.onclick = () => startLevel(i);
+    levelsContainer.appendChild(div);
+  }
+}
+
+function startLevel(level) {
+  if(level > unlockedLevel) return alert("Level locked!");
+  currentLevel = level;
+  questionContainer.style.display = 'block';
+  generateQuestion(level);
+  answerInput.value = '';
+}
+
+function generateQuestion(level){
+  // Difficulty increases with level
+  let maxNum = 5 + level*2; // number range increases
+  let a = Math.floor(Math.random()*maxNum) + 1;
+  let b = Math.floor(Math.random()*maxNum) + 1;
+  let ops = ['+', '-', '×'];
+  let op = ops[Math.floor(Math.random()*ops.length)];
+
+  switch(op){
+    case '+': correctAnswer = a+b; break;
+    case '-': correctAnswer = a-b; break;
+    case '×': correctAnswer = a*b; break;
+  }
+  document.getElementById('question').innerText = `Level ${currentLevel}: ${a} ${op} ${b} = ?`;
+}
+
+function submitAnswer() {
+  if(parseInt(answerInput.value) === correctAnswer){
+    alert("Correct!");
+    if(currentLevel >= unlockedLevel){
+      unlockedLevel = currentLevel + 1;
+      localStorage.setItem('unlockedLevel', unlockedLevel);
+    }
+    questionContainer.style.display = 'none';
+    loadLevels();
+  } else {
+    alert("Try Again!");
+  }
+}
+
+// Custom number keyboard
+function createKeyboard() {
+  keyboard.innerHTML = '';
+  let keys = ['1','2','3','4','5','6','7','8','9','0','←','C'];
+  keys.forEach(key=>{
+    let k = document.createElement('div');
+    k.innerText = key;
+    k.className = 'key';
+    if(key==='0') k.classList.add('wide');
+    k.onclick = () => handleKey(key);
+    keyboard.appendChild(k);
+  });
+}
+
+function handleKey(key){
+  if(key==='C'){ answerInput.value=''; }
+  else if(key==='←'){ answerInput.value = answerInput.value.slice(0,-1); }
+  else{ answerInput.value += key; }
+}
+
+loadLevels();
+createKeyboard();
+</script>
+
+</body>
+</html>
