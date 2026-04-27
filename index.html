@@ -1,228 +1,459 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Math Game</title>
-<style>
-  body {
-    font-family: 'Arial', sans-serif;
-    text-align: center;
-    background: linear-gradient(to bottom, #fefcea, #f1da36);
-    color: #333;
-    margin: 0;
-    padding: 0;
-  }
-  h1 { margin-top: 20px; }
-  #levels { 
-    display: flex; 
-    flex-wrap: wrap; 
-    justify-content: center; 
-    margin: 20px; 
-    max-width: 500px;
-    margin-left: auto;
-    margin-right: auto;
-  }
-  .level {
-    width: 60px;
-    height: 60px;
-    line-height: 60px;
-    margin: 5px;
-    border-radius: 10px;
-    color: white;
-    font-weight: bold;
-    cursor: pointer;
-    position: relative;
-    transition: 0.3s;
-    font-size: 18px;
-  }
-  .level:hover:not(.locked) { transform: scale(1.1); }
-  .locked { background-color: #aaa; cursor: not-allowed; }
-  .locked::after {
-    content: " ꗃ";
-    font-size: 18px;
-  }
-  .completed { background-color: #32cd32; }
-  
-  #questionContainer {
-    margin-top: 30px;
-    padding: 20px;
-    background: #fff8dc;
-    border-radius: 15px;
-    max-width: 400px;
-    margin-left: auto;
-    margin-right: auto;
-    display: none;
-  }
-  #question { font-size: 24px; margin-bottom: 10px; }
-  #answerInput { 
-    display: block; 
-    margin: 10px auto; 
-    font-size: 22px; 
-    width: 120px; 
-    text-align: center;
-  }
-  #keyboard { 
-    display: grid; 
-    grid-template-columns: repeat(3, 60px); 
-    gap: 10px; 
-    justify-content: center; 
-    margin-top: 10px; 
-  }
-  .key { 
-    background-color: #ff7f50; 
-    color: white; 
-    font-size: 20px; 
-    padding: 15px; 
-    border-radius: 10px; 
-    cursor: pointer; 
-    user-select: none; 
-    transition: 0.2s; 
-    text-align: center;
-  }
-  .key:hover { transform: scale(1.1); }
-  .key.wide { grid-column: span 3; background-color: #32cd32; }
-  #message { font-size: 20px; margin: 10px; height: 28px; }
-  #restart { 
-    padding: 10px 20px; 
-    background: #32cd32; 
-    color: white; 
-    border: none; 
-    border-radius: 10px; 
-    font-size: 18px; 
-    cursor: pointer; 
-    margin-top: 10px;
-  }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Rocket Rush</title>
+    <style>
+        :root {
+            --space-bg: #050510;
+            --ui-panel: rgba(20, 20, 40, 0.9);
+            --accent: #00d4ff;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: var(--space-bg);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: white;
+            user-select: none;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        canvas {
+            display: block;
+            background: radial-gradient(circle at bottom, #1a1a2e 0%, #050510 100%);
+            box-shadow: 0 0 50px rgba(0,0,0,0.5);
+        }
+
+        /* UI Overlays */
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(5, 5, 16, 0.8);
+            z-index: 10;
+        }
+
+        .hidden { display: none !important; }
+
+        .panel {
+            background: var(--ui-panel);
+            padding: 2rem;
+            border-radius: 15px;
+            border: 2px solid var(--accent);
+            text-align: center;
+            min-width: 300px;
+            box-shadow: 0 0 20px var(--accent);
+        }
+
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 2rem;
+            text-transform: uppercase;
+            letter-spacing: 5px;
+            background: linear-gradient(to bottom, #fff, var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        button {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: white;
+            background: transparent;
+            border: 1px solid white;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        button:hover {
+            background: var(--accent);
+            border-color: var(--accent);
+            transform: scale(1.05);
+        }
+
+        /* Garage Styles */
+        .garage-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .rocket-card {
+            padding: 10px;
+            border: 1px solid #444;
+            border-radius: 8px;
+            cursor: pointer;
+            opacity: 0.5;
+        }
+
+        .rocket-card.unlocked { opacity: 1; border-color: var(--accent); }
+        .rocket-card.selected { background: rgba(0, 212, 255, 0.2); border-width: 2px; }
+
+        /* HUD */
+        #hud {
+            position: absolute;
+            top: 20px;
+            left: 0;
+            width: 100%;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            pointer-events: none;
+            z-index: 5;
+            box-sizing: border-box;
+        }
+
+        .stat-box { font-weight: bold; font-size: 1.2rem; text-shadow: 2px 2px black; }
+    </style>
 </head>
 <body>
 
-<h1>Math Game</h1>
-<div id="levels"></div>
+<div id="game-container">
+    <div id="hud" class="hidden">
+        <div class="stat-box" id="planet-name">EARTH</div>
+        <div class="stat-box" id="distance-meter">0 KM</div>
+    </div>
 
-<div id="questionContainer">
-  <div id="question"></div>
-  <input type="text" id="answerInput" disabled>
-  <div id="keyboard"></div>
-  <div id="message"></div>
-  <button id="restart">↻ Restart</button>
+    <div id="main-menu" class="overlay">
+        <h1>Rocket Rush</h1>
+        <div class="panel">
+            <button onclick="game.start()">PLAY</button>
+            <button onclick="ui.showGarage()">GARAGE</button>
+        </div>
+    </div>
+
+    <div id="garage-menu" class="overlay hidden">
+        <h1>Garage</h1>
+        <div class="panel">
+            <div class="garage-grid" id="garage-list">
+                </div>
+            <button onclick="ui.showMenu()">BACK</button>
+        </div>
+    </div>
+
+    <div id="game-over" class="overlay hidden">
+        <h1 style="color: #ff4d4d;">CRASHED!</h1>
+        <div class="panel">
+            <p id="final-stats"></p>
+            <button onclick="game.start()">RESTART</button>
+            <button onclick="ui.showMenu()">MAIN MENU</button>
+        </div>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
 </div>
 
 <script>
-let totalLevels = 50;
-let unlockedLevel = parseInt(localStorage.getItem('unlockedLevel') || 1);
-let completedLevels = JSON.parse(localStorage.getItem('completedLevels') || "[]");
-let currentLevel = null;
-let correctAnswer = null;
+/**
+ * GAME CONFIGURATION & DATA
+ */
+const PLANETS = [
+    { name: "Earth", dist: 0, color: "#2b65ec", obstacle: "Debris" },
+    { name: "Moon", dist: 380, color: "#888", obstacle: "Dust Meteor" },
+    { name: "Mercury", dist: 900, color: "#b5a7a7", obstacle: "Metal Junk" },
+    { name: "Venus", dist: 1600, color: "#e3bb76", obstacle: "Sulfur Cloud" },
+    { name: "Mars", dist: 2500, color: "#e27b58", obstacle: "Red Rock" },
+    { name: "Jupiter", dist: 4000, color: "#d39c7e", obstacle: "Storm Core" },
+    { name: "Saturn", dist: 6000, color: "#c5ab6e", obstacle: "Ring Fragment" },
+    { name: "Uranus", dist: 8500, color: "#bbe1e4", obstacle: "Ice Chunk" },
+    { name: "Neptune", dist: 11000, color: "#6081ff", obstacle: "Dark Matter" },
+    { name: "Sun", dist: 15000, color: "#ffd200", obstacle: "Solar Flare" }
+];
 
-const levelsContainer = document.getElementById('levels');
-const questionContainer = document.getElementById('questionContainer');
-const answerInput = document.getElementById('answerInput');
-const keyboard = document.getElementById('keyboard');
-const message = document.getElementById('message');
-const restartBtn = document.getElementById('restart');
+const ROCKETS = {
+    "Earth": { color: "#ffffff", flame: "#00d4ff", name: "Standard" },
+    "Moon": { color: "#aaaaaa", flame: "#dddddd", name: "Lunar" },
+    "Mars": { color: "#ff4d4d", flame: "#ffa500", name: "Red Rover" },
+    "Jupiter": { color: "#d39c7e", flame: "#9c6d52", name: "Stormer" },
+    "Sun": { color: "#ffcc00", flame: "#ff3300", name: "Apollo X" }
+};
 
-function loadLevels() {
-  levelsContainer.innerHTML = '';
-  for(let i=1;i<=totalLevels;i++){
-    let div = document.createElement('div');
-    div.innerText = i;
-    div.className = 'level';
-    if(i > unlockedLevel) div.classList.add('locked');
-    if(completedLevels.includes(i)) div.classList.add('completed');
-    div.onclick = () => startLevel(i);
-    levelsContainer.appendChild(div);
-  }
-}
+/**
+ * ENGINE CLASSES
+ */
+class Game {
+    constructor() {
+        this.canvas = document.getElementById('gameCanvas');
+        this.ctx = this.canvas.getContext('2d');
+        this.resize();
+        window.addEventListener('resize', () => this.resize());
 
-function startLevel(level) {
-  if(level > unlockedLevel) {
-    message.style.color = 'red';
-    message.innerText = "Level Locked!";
-    return;
-  }
-  currentLevel = level;
-  questionContainer.style.display = 'block';
-  generateQuestion(level);
-  answerInput.value = '';
-  message.innerText = '';
-  answerInput.focus();
-  answerInput.scrollIntoView({behavior: "smooth"});
-}
+        this.isRunning = false;
+        this.distance = 0;
+        this.speed = 5;
+        this.currentPlanetIndex = 0;
+        
+        this.stars = Array.from({length: 100}, () => ({
+            x: Math.random() * this.canvas.width,
+            y: Math.random() * this.canvas.height,
+            size: Math.random() * 2,
+            speed: Math.random() * 3 + 1
+        }));
 
-function generateQuestion(level){
-  let maxNum = 5 + level*2;
-  let a = Math.floor(Math.random()*maxNum) + 1;
-  let b = Math.floor(Math.random()*maxNum) + 1;
-  let ops = ['+', '-', '×'];
-  let op = ops[Math.floor(Math.random()*ops.length)];
+        this.player = {
+            x: this.canvas.width / 2,
+            y: this.canvas.height - 100,
+            width: 30,
+            height: 50,
+            targetX: this.canvas.width / 2
+        };
 
-  switch(op){
-    case '+': correctAnswer = a+b; break;
-    case '-': correctAnswer = a-b; break;
-    case '×': correctAnswer = a*b; break;
-  }
-  document.getElementById('question').innerText = `Level ${currentLevel}: ${a} ${op} ${b} = ?`;
-}
+        this.obstacles = [];
+        this.unlockedRockets = JSON.parse(localStorage.getItem('unlockedRockets')) || ["Earth"];
+        this.selectedRocket = localStorage.getItem('selectedRocket') || "Earth";
 
-function submitAnswer() {
-  if(parseInt(answerInput.value) === correctAnswer){
-    message.style.color = 'green';
-    message.innerText = "Correct!";
-    if(!completedLevels.includes(currentLevel)) completedLevels.push(currentLevel);
-    localStorage.setItem('completedLevels', JSON.stringify(completedLevels));
-    if(currentLevel >= unlockedLevel){
-      unlockedLevel = currentLevel + 1;
-      localStorage.setItem('unlockedLevel', unlockedLevel);
+        this.initInput();
     }
-    loadLevels();
-    setTimeout(()=> { questionContainer.style.display='none'; message.innerText=''; }, 800);
-  } else {
-    message.style.color = 'red';
-    message.innerText = "Try Again!";
-  }
+
+    resize() {
+        this.canvas.width = Math.min(window.innerWidth, 500);
+        this.canvas.height = window.innerHeight;
+    }
+
+    initInput() {
+        window.addEventListener('keydown', e => {
+            if (e.key === "ArrowLeft") this.player.targetX -= 40;
+            if (e.key === "ArrowRight") this.player.targetX += 40;
+        });
+
+        this.canvas.addEventListener('touchmove', e => {
+            const touch = e.touches[0];
+            const rect = this.canvas.getBoundingClientRect();
+            this.player.targetX = touch.clientX - rect.left;
+            e.preventDefault();
+        }, {passive: false});
+    }
+
+    start() {
+        this.distance = 0;
+        this.speed = 5;
+        this.currentPlanetIndex = 0;
+        this.obstacles = [];
+        this.player.x = this.canvas.width / 2;
+        this.player.targetX = this.canvas.width / 2;
+        this.isRunning = true;
+        ui.showHUD();
+        this.loop();
+    }
+
+    gameOver() {
+        this.isRunning = false;
+        ui.showGameOver(Math.floor(this.distance), PLANETS[this.currentPlanetIndex].name);
+        
+        // Unlock logic
+        const currentPlanet = PLANETS[this.currentPlanetIndex].name;
+        if (ROCKETS[currentPlanet] && !this.unlockedRockets.includes(currentPlanet)) {
+            this.unlockedRockets.push(currentPlanet);
+            localStorage.setItem('unlockedRockets', JSON.stringify(this.unlockedRockets));
+        }
+    }
+
+    update() {
+        if (!this.isRunning) return;
+
+        this.distance += this.speed / 10;
+        this.speed += 0.001; // Difficulty ramp
+
+        // Level progression
+        if (this.currentPlanetIndex < PLANETS.length - 1) {
+            if (this.distance >= PLANETS[this.currentPlanetIndex + 1].dist) {
+                this.currentPlanetIndex++;
+            }
+        }
+
+        // Move Player
+        let dx = this.player.targetX - this.player.x;
+        this.player.x += dx * 0.1;
+        this.player.x = Math.max(20, Math.min(this.canvas.width - 20, this.player.x));
+
+        // Background Stars
+        this.stars.forEach(s => {
+            s.y += s.speed + (this.speed * 0.5);
+            if (s.y > this.canvas.height) {
+                s.y = 0;
+                s.x = Math.random() * this.canvas.width;
+            }
+        });
+
+        // Obstacles
+        if (Math.random() < 0.03) {
+            this.obstacles.push({
+                x: Math.random() * (this.canvas.width - 40),
+                y: -50,
+                size: 30 + Math.random() * 20,
+                speed: Math.random() * 3 + this.speed
+            });
+        }
+
+        this.obstacles.forEach((o, i) => {
+            o.y += o.speed;
+            
+            // Collision detection
+            const px = this.player.x - this.player.width/2;
+            const py = this.player.y - this.player.height/2;
+            if (px < o.x + o.size && px + this.player.width > o.x &&
+                py < o.y + o.size && py + this.player.height > o.y) {
+                this.gameOver();
+            }
+
+            if (o.y > this.canvas.height) this.obstacles.splice(i, 1);
+        });
+
+        ui.updateHUD(this.distance, PLANETS[this.currentPlanetIndex].name);
+    }
+
+    draw() {
+        const ctx = this.ctx;
+        ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+        // Draw Stars
+        ctx.fillStyle = "white";
+        this.stars.forEach(s => {
+            ctx.beginPath();
+            ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+            ctx.fill();
+        });
+
+        // Draw Planet (Atmosphere Glow)
+        const p = PLANETS[this.currentPlanetIndex];
+        const gradient = ctx.createRadialGradient(
+            this.canvas.width/2, this.canvas.height + 200, 100,
+            this.canvas.width/2, this.canvas.height + 200, 600
+        );
+        gradient.addColorStop(0, p.color);
+        gradient.addColorStop(1, 'transparent');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+        // Draw Obstacles
+        ctx.fillStyle = "#555";
+        this.obstacles.forEach(o => {
+            ctx.beginPath();
+            ctx.rect(o.x, o.y, o.size, o.size);
+            ctx.fill();
+            ctx.strokeStyle = "rgba(255,255,255,0.2)";
+            ctx.strokeRect(o.x, o.y, o.size, o.size);
+        });
+
+        // Draw Rocket
+        this.drawRocket(this.player.x, this.player.y);
+    }
+
+    drawRocket(x, y) {
+        const ctx = this.ctx;
+        const rocketData = ROCKETS[this.selectedRocket] || ROCKETS["Earth"];
+        
+        // Flame
+        ctx.fillStyle = rocketData.flame;
+        const flameH = 20 + Math.random() * 15;
+        ctx.beginPath();
+        ctx.moveTo(x - 10, y + 20);
+        ctx.lineTo(x + 10, y + 20);
+        ctx.lineTo(x, y + 20 + flameH);
+        ctx.fill();
+
+        // Body
+        ctx.fillStyle = rocketData.color;
+        ctx.beginPath();
+        ctx.moveTo(x, y - 30); // Tip
+        ctx.lineTo(x + 15, y + 20);
+        ctx.lineTo(x - 15, y + 20);
+        ctx.closePath();
+        ctx.fill();
+
+        // Fins
+        ctx.fillStyle = "#333";
+        ctx.fillRect(x - 20, y + 5, 10, 15);
+        ctx.fillRect(x + 10, y + 5, 10, 15);
+    }
+
+    loop() {
+        if (!this.isRunning) return;
+        this.update();
+        this.draw();
+        requestAnimationFrame(() => this.loop());
+    }
 }
 
-function createKeyboard() {
-  keyboard.innerHTML = '';
-  let keys = ['1','2','3','4','5','6','7','8','9','0','←','C'];
-  keys.forEach(key=>{
-    let k = document.createElement('div');
-    k.innerText = key;
-    k.className = 'key';
-    if(key==='0') k.classList.add('wide');
-    k.onclick = () => handleKey(key);
-    keyboard.appendChild(k);
-  });
-}
+/**
+ * UI CONTROLLER
+ */
+const ui = {
+    showMenu: () => {
+        document.querySelectorAll('.overlay').forEach(el => el.classList.add('hidden'));
+        document.getElementById('main-menu').classList.remove('hidden');
+        document.getElementById('hud').classList.add('hidden');
+    },
+    showGarage: () => {
+        document.querySelectorAll('.overlay').forEach(el => el.classList.add('hidden'));
+        document.getElementById('garage-menu').classList.remove('hidden');
+        
+        const list = document.getElementById('garage-list');
+        list.innerHTML = '';
+        
+        Object.keys(ROCKETS).forEach(key => {
+            const isUnlocked = game.unlockedRockets.includes(key);
+            const isSelected = game.selectedRocket === key;
+            const card = document.createElement('div');
+            card.className = `rocket-card ${isUnlocked ? 'unlocked' : ''} ${isSelected ? 'selected' : ''}`;
+            card.innerHTML = `
+                <div style="font-size: 0.8rem">${key}</div>
+                <div style="color: ${ROCKETS[key].color}">▲</div>
+            `;
+            if (isUnlocked) {
+                card.onclick = () => {
+                    game.selectedRocket = key;
+                    localStorage.setItem('selectedRocket', key);
+                    ui.showGarage();
+                };
+            }
+            list.appendChild(card);
+        });
+    },
+    showHUD: () => {
+        document.querySelectorAll('.overlay').forEach(el => el.classList.add('hidden'));
+        document.getElementById('hud').classList.remove('hidden');
+    },
+    updateHUD: (dist, planet) => {
+        document.getElementById('distance-meter').innerText = `${Math.floor(dist)} KM`;
+        document.getElementById('planet-name').innerText = planet.toUpperCase();
+    },
+    showGameOver: (dist, planet) => {
+        document.getElementById('hud').classList.add('hidden');
+        document.getElementById('game-over').classList.remove('hidden');
+        document.getElementById('final-stats').innerText = `You reached ${planet} at ${dist} KM!`;
+    }
+};
 
-function handleKey(key){
-  if(key==='C'){ answerInput.value=''; }
-  else if(key==='←'){ answerInput.value = answerInput.value.slice(0,-1); }
-  else{ answerInput.value += key; }
-}
-
-restartBtn.onclick = () => {
-  localStorage.removeItem('unlockedLevel');
-  localStorage.removeItem('completedLevels');
-  unlockedLevel = 1;
-  completedLevels = [];
-  loadLevels();
-  questionContainer.style.display = 'none';
-  message.style.color = '';
-  message.innerText = '';
-}
-
-// Submit when pressing Enter key
-answerInput.addEventListener("keypress", function(event){
-  if(event.key === "Enter"){
-    submitAnswer();
-  }
-});
-
-loadLevels();
-createKeyboard();
+const game = new Game();
+ui.showMenu();
 </script>
-
 </body>
 </html>
+
